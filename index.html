@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GlobalSync PX - Applied Build Exercise</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Custom Animations replicating the React animate-in utilities */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideInFromBottom { from { transform: translateY(1rem); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes slideInFromRight { from { transform: translateX(1rem); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes zoomIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        
+        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        .animate-slide-up { animation: slideInFromBottom 0.5s ease-out forwards; }
+        .animate-slide-right { animation: slideInFromRight 0.5s ease-out forwards; }
+        .animate-zoom-in { animation: zoomIn 0.5s ease-out forwards; }
+
+        body {
+            background-color: #FAFAFA;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        ::selection { background-color: #ffff00; color: black; }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            yellow: '#ffff00',
+                            bg: '#FAFAFA'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="text-black min-h-screen flex flex-col items-center py-12 px-4 md:px-8">
+
+    <!-- Global Header -->
+    <div class="w-full max-w-4xl flex items-center justify-between mb-8 border-b-4 border-black pb-4">
+        <div class="flex items-center gap-2">
+            <i data-lucide="globe" class="w-7 h-7 text-black"></i>
+            <h1 class="text-2xl font-black uppercase tracking-tight">GlobalSync PX</h1>
+        </div>
+        <div class="flex items-center gap-4 md:gap-6">
+            <button id="restart-btn" onclick="resetExercise()" class="hidden flex items-center gap-2 text-sm font-bold bg-white border-2 border-black px-3 py-1.5 rounded-full hover:bg-brand-yellow transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-px active:shadow-none" title="Restart Exercise">
+                <i data-lucide="refresh-ccw" class="w-3.5 h-3.5"></i> Restart
+            </button>
+            <div class="flex gap-2" id="phase-trackers">
+                <!-- Dots injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <main class="w-full max-w-4xl" id="main-container">
+        <!-- Phases will be injected here -->
+    </main>
+
+    <script>
+        // --- DATA ---
+        const journeySteps = [
+            { id: 1, title: "1. Landing Page", behavioral: "45% click-through rate to 'Start Free Trial'. Avg time: 1m 20s.", attitudinal: `"The value proposition for cross-border inventory is very clear." - Marketing Lead, Germany`, isFriction: false },
+            { id: 2, title: "2. Trial Setup", behavioral: "68% drop-off rate. Average time on task: 8.5 minutes.", attitudinal: `"Why do I need to upload official local business tax registration documents just to start a 14-day software trial? It's too much effort." - Operations Manager, Brazil`, isFriction: true },
+            { id: 3, title: "3. Data Sync", behavioral: "42% of remaining users fail to connect their database. Support tickets spike 300%.", attitudinal: `"The API documentation is highly technical and only in English. My regional IT team couldn't figure out the webhooks." - CIO, Japan`, isFriction: true },
+            { id: 4, title: "4. Core Usage", behavioral: "DAU/MAU ratio is 75% for users who complete onboarding.", attitudinal: `"Once running, the real-time global tracking is a total game-changer for us." - Logistics Coordinator, UAE`, isFriction: false },
+            { id: 5, title: "5. Upgrade", behavioral: "15% conversion rate from free trial to enterprise tiers.", attitudinal: `"Pricing is fair, but waiting 24 hours for email support in a different time zone is tough." - CEO, Singapore`, isFriction: false }
+        ];
+
+        const strategyQuestions = [
+            {
+                stepId: 2,
+                title: "Fixing Trial Setup Friction",
+                context: "Users in Brazil (and globally) are abandoning the setup because uploading local tax documents is too high-friction for a simple trial.",
+                options: [
+                    { id: 'A', text: "Make the tax document upload mandatory before they can even see the pricing page, to ensure high-intent leads.", isCorrect: false, feedback: "This decreases customer empathy and increases friction. We want to reduce barriers to entry, not raise them." },
+                    { id: 'B', text: "Delay compliance requirements until after the 14-day trial, allowing instant email-based signup to experience value first.", isCorrect: true, feedback: "Excellent! This aligns with product-led growth. Let the international users experience the 'Aha!' moment before asking for heavy compliance data." },
+                    { id: 'C', text: "Keep the tax upload but add a friendly tooltip explaining why we need it.", isCorrect: false, feedback: "While friendly, it doesn't solve the core behavioral issue: the actual effort of finding and uploading documents is too high for a trial." }
+                ]
+            },
+            {
+                stepId: 3,
+                title: "Fixing Data Sync Friction",
+                context: "Regional IT teams (e.g., in Japan) are struggling with English-only, complex API documentation, causing a 300% spike in tickets.",
+                options: [
+                    { id: 'A', text: "Send an automated daily email in English reminding them to finish the technical setup.", isCorrect: false, feedback: "This ignores the attitudinal data. The issue isn't a lack of reminders; it's a language and technical barrier." },
+                    { id: 'B', text: "Offer a premium 'White-Glove Implementation' service for $500.", isCorrect: false, feedback: "This penalizes international users by charging them extra just to overcome our own poor documentation. It creates more friction." },
+                    { id: 'C', text: "Build 'No-Code' integrations for common local ERPs and localize API docs into key regional languages.", isCorrect: true, feedback: "Perfect! This directly addresses the root cause by removing the technical barrier and showing empathy for international teams." }
+                ]
+            }
+        ];
+
+        // --- STATE ---
+        let state = {
+            phase: 'intro', // intro, identify, strategy, results
+            activeStep: null,
+            flaggedSteps: [],
+            identifyFeedback: null,
+            currentStrategyIndex: 0,
+            strategyAnswers: {},
+            strategyFeedback: null
+        };
+
+        // --- RENDER LOGIC ---
+        function updateUI() {
+            renderHeader();
+            const container = document.getElementById('main-container');
+            container.innerHTML = '';
+
+            if (state.phase === 'intro') {
+                container.innerHTML = `
+                    <div class="bg-white border-4 border-black rounded-[24px] p-8 md:p-12 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] animate-slide-up">
+                        <div class="inline-block bg-brand-yellow border-2 border-black px-4 py-1 rounded-full font-bold text-sm mb-6 transform -rotate-2">
+                            Interactive Mission
+                        </div>
+                        <h2 class="text-4xl md:text-5xl font-black mb-6 leading-tight">Diagnose the V1 Customer Journey</h2>
+                        <p class="text-xl mb-8 text-gray-700 leading-relaxed">
+                            You are consulting for <strong>GlobalSync</strong>, an international B2B SaaS platform. 
+                            The current V1 onboarding experience is leaking users.<br/><br/>
+                            Your mission: Explore the interactive data map, <strong>flag the 2 most critical friction points</strong>, and then select the best strategic redesigns to fix them.
+                        </p>
+                        <button onclick="setPhase('identify')" class="flex items-center gap-3 bg-black text-white text-xl font-black px-8 py-4 rounded-xl hover:bg-brand-yellow hover:text-black transition-all border-4 border-black hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none cursor-pointer">
+                            <i data-lucide="play" class="fill-current"></i> Start Analysis
+                        </button>
+                    </div>
+                `;
+            } 
+            else if (state.phase === 'identify') {
+                container.innerHTML = `
+                    <div class="space-y-8 animate-fade-in">
+                        <div class="bg-brand-yellow border-4 border-black rounded-2xl p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col md:flex-row items-center justify-between gap-4">
+                            <div>
+                                <h2 class="text-2xl font-black flex items-center gap-2"><i data-lucide="map"></i> Investigation Phase</h2>
+                                <p class="font-medium text-black/80">Click each step to analyze data. Flag exactly <strong>2 critical friction points</strong>.</p>
+                            </div>
+                            <div class="bg-black text-white px-6 py-3 rounded-lg font-black text-xl border-2 border-black flex items-center gap-2">
+                                <i data-lucide="flag" class="${state.flaggedSteps.length === 2 ? 'text-brand-yellow' : 'text-gray-400'}"></i> 
+                                ${state.flaggedSteps.length} / 2 Flagged
+                            </div>
+                        </div>
+
+                        <div class="grid md:grid-cols-5 gap-4" id="steps-grid">
+                            ${journeySteps.map(step => `
+                                <button onclick="setActiveStep(${step.id})" class="relative p-4 rounded-xl border-4 text-left transition-all duration-200 cursor-pointer
+                                    ${state.activeStep?.id === step.id ? 'border-black bg-white scale-105 z-10 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]' : 'border-gray-200 bg-white hover:border-gray-400'}
+                                    ${state.flaggedSteps.includes(step.id) ? '!bg-[#ffffe6] !border-brand-yellow' : ''}
+                                ">
+                                    ${state.flaggedSteps.includes(step.id) ? `
+                                        <div class="absolute -top-3 -right-3 bg-brand-yellow border-2 border-black rounded-full p-1 shadow-sm">
+                                            <i data-lucide="flag" class="text-black w-4 h-4 fill-current"></i>
+                                        </div>
+                                    ` : ''}
+                                    <div class="text-sm font-bold text-gray-500 mb-1">Step ${step.id}</div>
+                                    <div class="font-black text-lg leading-tight">${step.title.split('. ')[1]}</div>
+                                </button>
+                            `).join('')}
+                        </div>
+
+                        <div id="step-details-container">
+                            ${state.activeStep ? renderActiveStepDetails() : `
+                                <div class="bg-white border-4 border-dashed border-gray-300 rounded-2xl p-12 text-center text-gray-500 flex flex-col items-center">
+                                    <i data-lucide="target" class="w-12 h-12 mb-4 opacity-50"></i>
+                                    <p class="text-xl font-bold">Select a step above to reveal the user data.</p>
+                                </div>
+                            `}
+                        </div>
+
+                        ${state.flaggedSteps.length === 2 ? `
+                            <div class="text-center animate-zoom-in">
+                                <button onclick="verifyIdentification()" class="bg-black text-white text-xl font-black px-10 py-4 rounded-xl border-4 border-black hover:bg-brand-yellow hover:text-black transition-all shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none cursor-pointer">
+                                    Confirm Diagnosis
+                                </button>
+                                
+                                ${state.identifyFeedback ? `
+                                    <div class="mt-6 p-4 rounded-xl border-4 font-bold text-lg flex items-center justify-center gap-3 animate-slide-up
+                                        ${state.identifyFeedback.type === 'success' ? 'bg-brand-yellow border-black text-black' : 'bg-red-100 border-red-500 text-red-700'}">
+                                        <i data-lucide="${state.identifyFeedback.type === 'success' ? 'check-circle-2' : 'alert-octagon'}"></i>
+                                        ${state.identifyFeedback.message}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+            else if (state.phase === 'strategy') {
+                const question = strategyQuestions[state.currentStrategyIndex];
+                
+                container.innerHTML = `
+                    <div class="bg-white border-4 border-black rounded-[24px] p-6 md:p-10 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] animate-slide-right">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-3xl font-black">V2 Redesign Strategy</h2>
+                            <div class="bg-gray-100 px-4 py-2 rounded-full font-bold border-2 border-gray-300">
+                                Decision ${state.currentStrategyIndex + 1} of ${strategyQuestions.length}
+                            </div>
+                        </div>
+
+                        <div class="bg-brand-bg border-2 border-black rounded-xl p-6 mb-8">
+                            <h3 class="text-xl font-black text-brand-yellow bg-black inline-block px-3 py-1 rounded mb-3">
+                                ${question.title}
+                            </h3>
+                            <p class="text-lg text-gray-800 leading-relaxed">
+                                ${question.context}
+                            </p>
+                        </div>
+
+                        <h4 class="font-bold text-lg mb-4 text-gray-600">Select the best V2 recommendation:</h4>
+                        
+                        <div class="space-y-4">
+                            ${question.options.map(option => {
+                                const isSelected = state.strategyFeedback?.id === option.id;
+                                let btnStyle = "border-gray-200 bg-white hover:border-black text-black cursor-pointer";
+                                
+                                if (state.strategyFeedback) {
+                                    btnStyle = "cursor-default ";
+                                    if (isSelected && option.isCorrect) btnStyle += "border-green-500 bg-green-50 text-green-900 shadow-[4px_4px_0px_0px_rgba(34,197,94,1)]";
+                                    else if (isSelected && !option.isCorrect) btnStyle += "border-red-500 bg-red-50 text-red-900";
+                                    else if (!isSelected && option.isCorrect) btnStyle += "border-green-500 bg-white";
+                                    else btnStyle += "border-gray-100 bg-gray-50 text-gray-400 opacity-50";
+                                }
+
+                                return `
+                                    <button 
+                                        ${state.strategyFeedback ? 'disabled' : ''} 
+                                        onclick="handleStrategySelection('${option.id}')"
+                                        class="w-full text-left p-5 rounded-xl border-4 transition-all duration-200 font-medium text-lg flex gap-4 ${btnStyle}">
+                                        <span class="font-black text-xl">${option.id}.</span>
+                                        <span>${option.text}</span>
+                                    </button>
+                                `;
+                            }).join('')}
+                        </div>
+
+                        ${state.strategyFeedback ? `
+                            <div class="mt-8 p-6 rounded-xl border-4 animate-slide-up
+                                ${state.strategyFeedback.isCorrect ? 'bg-brand-yellow border-black text-black' : 'bg-red-50 border-red-500 text-red-900'}">
+                                <h4 class="font-black text-xl mb-2 flex items-center gap-2">
+                                    <i data-lucide="${state.strategyFeedback.isCorrect ? 'check-circle-2' : 'x-circle'}"></i> 
+                                    ${state.strategyFeedback.isCorrect ? 'Strategic Alignment Achieved' : 'Sub-optimal Decision'}
+                                </h4>
+                                <p class="text-lg">${state.strategyFeedback.feedback}</p>
+                                
+                                <button onclick="nextStrategyQuestion()" class="mt-6 flex items-center gap-2 bg-black text-white px-6 py-3 rounded-lg font-bold hover:bg-gray-800 transition-colors cursor-pointer">
+                                    ${state.currentStrategyIndex < strategyQuestions.length - 1 ? 'Next Scenario' : 'View Final Results'} 
+                                    <i data-lucide="chevron-right"></i>
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+            else if (state.phase === 'results') {
+                container.innerHTML = `
+                    <div class="bg-brand-yellow border-4 border-black rounded-[24px] p-8 md:p-12 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] text-center animate-zoom-in">
+                        <i data-lucide="check-circle-2" class="w-20 h-20 mx-auto mb-6 text-black"></i>
+                        <h2 class="text-4xl md:text-5xl font-black mb-4">Module Completed</h2>
+                        <p class="text-2xl font-medium mb-8 text-black/80">
+                            You successfully mapped the behavioral and attitudinal data to identify friction, and prioritized localized, high-empathy solutions for V2.
+                        </p>
+                        
+                        <div class="grid md:grid-cols-2 gap-6 mb-10 text-left">
+                            <div class="bg-white border-2 border-black p-6 rounded-xl">
+                                <h3 class="font-black text-xl mb-2 flex items-center gap-2"><i data-lucide="globe" class="w-5 h-5"></i> Takeaway 1</h3>
+                                <p>Never demand heavy compliance (like tax IDs) before allowing international users to experience product value.</p>
+                            </div>
+                            <div class="bg-white border-2 border-black p-6 rounded-xl">
+                                <h3 class="font-black text-xl mb-2 flex items-center gap-2"><i data-lucide="target" class="w-5 h-5"></i> Takeaway 2</h3>
+                                <p>Technical documentation must be localized; rely on no-code integrations to reduce technical friction globally.</p>
+                            </div>
+                        </div>
+
+                        <button onclick="resetExercise()" class="flex items-center justify-center gap-2 mx-auto bg-black text-white text-xl font-black px-8 py-4 rounded-xl border-4 border-black hover:bg-white hover:text-black transition-all shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none cursor-pointer">
+                            <i data-lucide="refresh-ccw"></i> Restart Exercise
+                        </button>
+                    </div>
+                `;
+            }
+
+            lucide.createIcons();
+        }
+
+        function renderActiveStepDetails() {
+            const step = state.activeStep;
+            const isFlagged = state.flaggedSteps.includes(step.id);
+            return `
+                <div class="bg-white border-4 border-black rounded-2xl p-6 md:p-8 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] animate-slide-up mt-8">
+                    <h3 class="text-3xl font-black mb-6">${step.title}</h3>
+                    <div class="grid md:grid-cols-2 gap-8 mb-8">
+                        <div class="bg-gray-50 border-2 border-gray-200 rounded-xl p-5 relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-2 h-full bg-blue-500"></div>
+                            <h4 class="font-bold flex items-center gap-2 mb-2 text-lg"><i data-lucide="bar-chart-3" class="w-5 h-5"></i> Behavioral Data</h4>
+                            <p class="text-gray-700 text-lg">${step.behavioral}</p>
+                        </div>
+                        <div class="bg-gray-50 border-2 border-gray-200 rounded-xl p-5 relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-2 h-full bg-purple-500"></div>
+                            <h4 class="font-bold flex items-center gap-2 mb-2 text-lg"><i data-lucide="message-square" class="w-5 h-5"></i> Attitudinal Data</h4>
+                            <p class="text-gray-700 text-lg italic">"${step.attitudinal}"</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col md:flex-row items-center justify-between gap-4 pt-6 border-t-2 border-dashed border-gray-300">
+                        <button onclick="toggleFlag(${step.id})" class="flex items-center gap-2 px-6 py-3 rounded-lg font-bold text-lg border-4 transition-all cursor-pointer
+                            ${isFlagged ? 'bg-brand-yellow border-black text-black' : 'bg-white border-gray-300 text-gray-600 hover:border-black hover:text-black'}">
+                            <i data-lucide="flag" class="${isFlagged ? 'fill-current' : ''}"></i>
+                            ${isFlagged ? 'Flagged as Friction' : 'Flag as Friction Point'}
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderHeader() {
+            // Toggle restart button visibility
+            const restartBtn = document.getElementById('restart-btn');
+            if (state.phase === 'intro') {
+                restartBtn.classList.add('hidden');
+            } else {
+                restartBtn.classList.remove('hidden');
+            }
+
+            // Update Phase Trackers
+            const phases = ['intro', 'identify', 'strategy', 'results'];
+            const trackers = document.getElementById('phase-trackers');
+            trackers.innerHTML = phases.map(p => {
+                const isActive = state.phase === p;
+                const isComplete = Object.keys(state.strategyAnswers).length > 0 && state.phase === 'results';
+                let bgClass = 'bg-transparent';
+                if (isActive) bgClass = 'bg-brand-yellow';
+                else if (isComplete && p !== 'results') bgClass = 'bg-black'; // simplistic progress representation
+
+                return `<div class="w-3 h-3 rounded-full border-2 border-black ${bgClass}"></div>`;
+            }).join('');
+        }
+
+        // --- HANDLERS ---
+        function setPhase(newPhase) {
+            state.phase = newPhase;
+            updateUI();
+        }
+
+        function setActiveStep(id) {
+            state.activeStep = journeySteps.find(s => s.id === id);
+            updateUI();
+        }
+
+        function toggleFlag(id) {
+            if (state.flaggedSteps.includes(id)) {
+                state.flaggedSteps = state.flaggedSteps.filter(stepId => stepId !== id);
+            } else {
+                if (state.flaggedSteps.length < 2) {
+                    state.flaggedSteps.push(id);
+                } else {
+                    alert("You can only flag exactly 2 friction points. Unflag one first.");
+                }
+            }
+            state.identifyFeedback = null;
+            updateUI();
+        }
+
+        function verifyIdentification() {
+            if (state.flaggedSteps.length !== 2) {
+                state.identifyFeedback = { type: 'error', message: "Please flag exactly 2 critical friction points." };
+                updateUI();
+                return;
+            }
+            const correctIds = journeySteps.filter(s => s.isFriction).map(s => s.id);
+            const isCorrect = state.flaggedSteps.every(id => correctIds.includes(id));
+
+            if (isCorrect) {
+                state.identifyFeedback = { type: 'success', message: "Spot on! You accurately diagnosed the V1 breakdowns based on the data." };
+                updateUI();
+                setTimeout(() => setPhase('strategy'), 2000);
+            } else {
+                state.identifyFeedback = { type: 'error', message: "Not quite. Look closer at the drop-off rates and attitudinal quotes. Unflag and try again." };
+                updateUI();
+            }
+        }
+
+        function handleStrategySelection(optionId) {
+            const question = strategyQuestions[state.currentStrategyIndex];
+            const selectedOption = question.options.find(o => o.id === optionId);
+            state.strategyAnswers[state.currentStrategyIndex] = selectedOption;
+            state.strategyFeedback = selectedOption;
+            updateUI();
+        }
+
+        function nextStrategyQuestion() {
+            state.strategyFeedback = null;
+            if (state.currentStrategyIndex < strategyQuestions.length - 1) {
+                state.currentStrategyIndex++;
+                updateUI();
+            } else {
+                setPhase('results');
+            }
+        }
+
+        function resetExercise() {
+            state = {
+                phase: 'intro',
+                activeStep: null,
+                flaggedSteps: [],
+                identifyFeedback: null,
+                currentStrategyIndex: 0,
+                strategyAnswers: {},
+                strategyFeedback: null
+            };
+            updateUI();
+        }
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', () => {
+            updateUI();
+        });
+    </script>
+</body>
+</html>
